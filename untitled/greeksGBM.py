@@ -56,13 +56,17 @@ def rvoldata(S0,r,sigma, T,M,I):
 def greeksdata(S0,r,sigma,T,M,I,K):
     dt = float(T)/M
 
-    greeks = np.zeros((M+1,6), np.float64 )
+    greeks = np.zeros((M+1,7), np.float64 )
     greeks[0][0] = S0
     greeks[0][1]= delta#eurocalloption._init_.
     greeks[0][2]= gamma#eurocalloption._init_.self.
     greeks[0][3]= theta#eurocalloption._init_.self.
     greeks[0][4]= rho#eurocalloption._init_.self.
     greeks[0][5]= vega#eurocalloption._init_.self.
+    greeks[0][6] = 0
+
+    #(np.log(greeks[0][0] / K) + (r + 0.5 * sigma ** 2) * tau) / (sigma * np.sqrt(tau)) = n1
+    #(np.log(greeks[0][0] / K) - (r + 0.5 * sigma ** 2) * tau) / (sigma * np.sqrt(tau)) = n2
     for i in range(1,M+1):
         tau = T - i * dt
         greeks[i][0] = greeks[i - 1][0] * np.exp((r - 0.5 * sigma ** 2) * dt + sigma * np.sqrt(tau) )
@@ -75,7 +79,11 @@ def greeksdata(S0,r,sigma,T,M,I,K):
                        -r*K*np.exp(-r*tau)*stats.norm.cdf(-d1,0.0,1.0)
         greeks[i][4] = K*T*np.exp(-r*tau)*stats.norm.cdf(d2,0.0,1.0)
         greeks[i][5] = greeks[i][0]*stats.norm.pdf(d1,0.0,1.0)*np.sqrt(tau)
-
+        greeks[i][6] = ((greeks[i][0]*stats.norm.cdf(d1,0.0,1.0) - K*np.exp(-r*tau)*stats.norm.cdf(d2,0.0,1.0)
+                         - greeks[i-1][0]*stats.norm.cdf((np.log(greeks[i-1][0] / K)
+                        + (r + 0.5 * sigma ** 2) * tau) / (sigma * np.sqrt(tau)),0.0,1.0) +K*np.exp(-r*tau)*stats.norm
+                         .cdf((np.log(greeks[i-1][0] / K) - (r + 0.5 * sigma ** 2) * tau) / (sigma * np.sqrt(tau)),0.0
+                              ,1.0))) - greeks[i][1]*(greeks[i][0]-greeks[i-1][0])
     return greeks
 
 
@@ -96,7 +104,7 @@ greeks[:, 0].round(4)
 #df=pd.DataFrame( np.array([greeks[:,0],greeks[:, 1],greeks[:, 2],greeks[:, 3], greeks[:, 4], greeks[:, 5]]),
                 #index = range(64),columns=['Price', 'Delta', 'Gamma', 'Theta','Rho', 'Vega'])
 d={'Price':[greeks[:, 0]], 'Delta':[greeks[:, 1]], 'Gamma':[greeks[:, 2]], 'Theta':[greeks[:, 3]]
-, 'Rho':[greeks[:, 4]], 'Vega':[greeks[:, 5]]}
+, 'Rho':[greeks[:, 4]], 'Vega':[greeks[:, 5]], 'Pnl':[greeks[:, 6]]}
 df = pd.DataFrame(data=d)
 
 with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
