@@ -37,12 +37,26 @@ def gen_paths(S0, r, sigma, T, M, I):
         rand = np.random.standard_normal(I)
         paths[t] = paths[t - 1] * np.exp((r - 0.5 * sigma ** 2) * dt +
                                          sigma * np.sqrt(dt) * rand)
+
     return paths
 
+def rvoldata(S0,r,sigma, T,M,I):
+    dt = float(T)/M
+    ret = np.zeros((M+1,I))
+    ret[0][0] = S0
+    ret[0][1] = 0
+    for t in range(1,M+1):
+        rand = np.random.standard_normal(I)
+        ret[t][0] = ret[t-1][0]*np.exp((r-0.5*sigma**2)*dt + sigma*np.sqrt(dt))
+        ret[t][1] = np.log(ret[t][0]/ret[t-1][0])
+
+    Rvol = 100*np.sqrt(252/(M+1)*np.sum((ret[:, 1])**2))
+
+    return Rvol
 def greeksdata(S0,r,sigma,T,M,I,K):
     dt = float(T)/M
 
-    greeks = np.zeros((M+1,6))
+    greeks = np.zeros((M+1,6), np.float64 )
     greeks[0][0] = S0
     greeks[0][1]= delta#eurocalloption._init_.
     greeks[0][2]= gamma#eurocalloption._init_.self.
@@ -94,6 +108,7 @@ CallPayoffAverage = np.average(np.maximum(0, paths[-1] - K))
 CallPayoff = np.exp(-r*T) * CallPayoffAverage
 print('Your finall call payoff with GBM is',CallPayoff)
 
+print('The realized volatility is', rvoldata(S0,r,sigma, T,M,I))
 
 
 
@@ -139,9 +154,6 @@ print('Your finall call payoff with GBM is',CallPayoff)
        # self.vega = self.vega(self,S0,d1,d2,dt)
        # self.theta = self.theta(self,S0,d1,dt,sigma,K,r)
        # self.rho = self.rho(self,K,dt,r,d2)
-
-
-
 
 #class price_data:
     #def time_step(self, M,T):
